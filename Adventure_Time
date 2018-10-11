@@ -1,0 +1,86 @@
+# Adventure TIme!
+
+
+def adventure_time():
+    x = input('ready to play!? y/n')
+    if str.lower(x) in ('yes','y'):
+        playing = True
+        while playing == True:
+            print('You awaken in the dungeon, shackles on your wrists...')
+            first_move = input('do you: a) look around, investigate surroundings b) try to remove shackles?')
+            if str.lower(first_move) == str('a'):
+                print('you notice rat feces in the corner')
+            else:
+                print('the shackles are old and worn, but too tight to remove')
+            print('The gaoler enters the chamber, demanding you accompany him')
+            second_move = input('do you: a) Garrote him with your schackles  b) follow him meekly?')
+            if str.lower(second_move) == str('a'):
+                print('jump at the gaoler, but he is prepared and plunges his knife into your chest. Game OVER!')
+            else: 
+                print('you follow the gaoler out of the fetid cell')
+                print('you are sat down at a filthy wooden table. The tormenter approaches...')
+                third_move = input('do you: a) ask for food & drink  b) say nothing?')
+                if str.lower(third_move) == str('a'):
+                    print()
+                    print()
+                    print('the tormenter burns you with a hot iron')
+                    print()
+                    print()
+                else:
+                    print()
+                    print()
+                    print('the tormenter reaches across the table, undoing your shackles')
+                    print()
+                    print()
+                print('The Tormenter speaks: "the powers at be have designated you for a task - though I would rather you stay here permanently"')
+                print()
+                print()
+                print()
+                print('"you must retrieve a maiden for the supreme leader. You have no choice in the matter"')
+                print()
+                print()
+                print()
+                print('you are lead to the armory...and freedom?')
+                print()
+                print()
+                print()
+                
+
+                print('you enter the armory')
+                fourth_move = input('do you: a) Equip the sword and buckler?  b) Equip the bow? c) Equip the axe? d) Choose nothing but you birthday suit?')
+                if str.lower(fourth_move) == str('a'):
+                    print('you equip the sword and buckler')
+                    sb_move1 = input('you travel for many weeks into the mystic mountains, swash buckling the whole way! You come across a giant spider! Attack Y/N?')
+                    if str.lower(sb_move1) == str('y'):
+                        print('you charge forth, and die')
+                    else:
+                        print('you live, and fight another day. Continuing on your journey')                       
+                elif str.lower(fourth_move) == str('b'):
+                    print('you equip the bow')
+                    bow_move1 = input('you travel for many weeks into the mystic mountains, twiddling your bow the whole way! You come across a giant spider! Attack Y/N?')
+                    if str.lower(bow_move1) == str('y'):
+                        print('you fire an arrow, it does nothing, and you die')
+                    else:
+                        print('you live, and fight another day. Continuing on your journey')
+                elif str.lower(fourth_move) == str('c'):
+                    print('you equip the axe')
+                    axe_move1 = input('you travel for many weeks into the mystic mountains, with your axe the whole way! You come across a giant spider! Attack Y/N?')
+                    if str.lower(axe_move1) == str('y'):
+                        print('you charge forth, and die')
+                    else:
+                        print('you live, and fight another day. Continuing on your journey')
+                elif str.lower(fourth_move) == str('d'):
+                    print('you equip nothing; all present laugh at your wretched birthday suit')
+                    bs_move1 = input('you travel for many weeks into the mystic mountains, in your birthday suit the whole way! You come across a giant spider! Attack Y/N?')
+                    if str.lower(bs_move1) == str('y'):
+                        print('you charge forth, and die immediately, since you are in your birthday suit')
+                    else:
+                        print('you live, and fight another day. Continuing on your journey')
+
+                
+            y = input('Play again!?'' y/n')
+            if str.lower(y) not in ('yes','y'):
+                playing = False
+
+adventure_time()
+
