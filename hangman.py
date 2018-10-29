@@ -7,13 +7,14 @@ def hangman():
 	playing = True
 	while playing == True:
 
-		wordlist = ['python','ideal','cobra','ghost']
+		wordlist = ['animal', 'banana', 'ghoul', 'pumpkin']
 		letterlist = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 		targetword = str(random.choice(wordlist))
 		num_letters = len(targetword)
 		a = list(targetword)
 		b = set(range(len(targetword)))
 		ab_sort = sorted(list(zip(b,a)))
+
 		
 		print('welcome to hangman')
 		print()
@@ -24,7 +25,8 @@ def hangman():
 		incorrect_guesses = []
 		correct_guesses = []
 		previous_guesses = []
-		
+		guess_count = 0
+
 		while i < 10:	
 
 			if len(set(correct_guesses) & set(targetword)) == len(set(targetword)):
@@ -32,6 +34,7 @@ def hangman():
 				print(targetword)
 				# print()		
 				print('You win!')
+				print(f'cout got it in {guess_count} guesses')
 				i=10
 
 			elif len(set(correct_guesses) & set(targetword)) != len(set(targetword)):
@@ -46,6 +49,7 @@ def hangman():
 							print('Incorrect!!!')
 							incorrect_guesses.append(guess)
 							i += 1
+						guess_count +=1
 						guesses_left = str(10 - i)			
 						print(guesses_left + ' guesses left!')
 						previous_guesses.append(guess)					
