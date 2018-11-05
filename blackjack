@@ -13,13 +13,15 @@ def blackjack():
 	Q = 10
 	K = 10
 	A = 11
-	card_list = (2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K)
-	# card_list = [5, 6, A]
+	card_list = (2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A)
+	# card_list = [10, A]
 	# card_list = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A')
 
 
 	rd = input("Welcome to Russ' casino! Dealer must hit below 16, player wins ties. Ready to play?")
 	if str.lower(rd) in ('yes', 'yep', 'y', 'sure'):
+		wins = 0
+		losses = 0
 		playing = True
 		while playing == True:
 
@@ -32,29 +34,30 @@ def blackjack():
 
 			if sum(player_hand) == 21:
 				print('winner winner chicken dinner! You win!')
-			
-			hitting = True
-			while hitting == True:
-				if hand_maxer(player_hand) == 21:
-					print('21!')
-					break
-				elif sum(player_hand) > 21:
-					player_busted = True	
-					print('Busted!')
-					break
-				else:
-					hs = input('hit or stay?')
-					if hs == 'hit':
-						draw = random.choice(card_list)
-						if draw == A and sum(player_hand)+draw > 21:
-							A=1
-							player_hand.append(A)
-						else:
-							player_hand.append(draw)
-						print(player_hand)
-					if hs == 'stay':
+				
+			else:
+				hitting = True
+				while hitting == True:
+					if hand_maxer(player_hand) == 21:
+						print('21!')
 						break
-			
+					elif sum(player_hand) > 21:
+						player_busted = True	
+						print('Busted!')
+						break
+					else:
+						hs = input('hit or stay?')
+						if hs == 'hit':
+							draw = random.choice(card_list)
+							if sum(player_hand) > 21 and A in player_hand:
+								A=1
+								player_hand.append(A)
+							else:
+								player_hand.append(draw)
+							print(sum(player_hand))
+						if hs == 'stay':
+							break
+				
 			if player_busted != True:
 				while sum(dealer_hand) < 16:
 					dealer_hand.append(random.choice(card_list))
@@ -64,13 +67,17 @@ def blackjack():
 					if sum(dealer_hand) > 21:
 						print('Dealer Busts!')
 						dealer_busted = True		
-				print(f'dealer hand is: {dealer_hand}')
+				print(f'dealer hand is: {sum(dealer_hand)}')
 
 			if sum(player_hand)<sum(dealer_hand) and dealer_busted != True or player_busted == True:
 				print('The House Wins')
+				losses +=1
+
 			else:
 				print('You Win!')
+				wins +=1
 
+			print(f'your record is {wins} wins and {losses} losses')
 			
 			y = input('Play again!?'' y/n')
 			if str.lower(y) not in ('yes','y'):
