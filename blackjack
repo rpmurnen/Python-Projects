@@ -1,0 +1,79 @@
+# in Python3
+
+import random
+
+def hand_maxer(hand):
+	A = 11
+	if sum(hand) > 21 and A in hand:
+		hand[hand.index(A)] = 1
+	sum(hand)
+
+def blackjack():
+	J = 10
+	Q = 10
+	K = 10
+	A = 11
+	card_list = (2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K)
+	# card_list = [5, 6, A]
+	# card_list = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A')
+
+
+	rd = input("Welcome to Russ' casino! Dealer must hit below 16, player wins ties. Ready to play?")
+	if str.lower(rd) in ('yes', 'yep', 'y', 'sure'):
+		playing = True
+		while playing == True:
+
+			player_hand = random.sample(card_list,2)
+			print(f'Your hand is a: {player_hand[0]}, {player_hand[1]}')
+			dealer_hand = random.sample(card_list,2)
+			print(f'Dealer Shows a: {dealer_hand[0]}')			
+			dealer_busted = False
+			player_busted = False
+
+			if sum(player_hand) == 21:
+				print('winner winner chicken dinner! You win!')
+			
+			hitting = True
+			while hitting == True:
+				if hand_maxer(player_hand) == 21:
+					print('21!')
+					break
+				elif sum(player_hand) > 21:
+					player_busted = True	
+					print('Busted!')
+					break
+				else:
+					hs = input('hit or stay?')
+					if hs == 'hit':
+						draw = random.choice(card_list)
+						if draw == A and sum(player_hand)+draw > 21:
+							A=1
+							player_hand.append(A)
+						else:
+							player_hand.append(draw)
+						print(player_hand)
+					if hs == 'stay':
+						break
+			
+			if player_busted != True:
+				while sum(dealer_hand) < 16:
+					dealer_hand.append(random.choice(card_list))
+					
+					if sum(dealer_hand) == 16:
+						break
+					if sum(dealer_hand) > 21:
+						print('Dealer Busts!')
+						dealer_busted = True		
+				print(f'dealer hand is: {dealer_hand}')
+
+			if sum(player_hand)<sum(dealer_hand) and dealer_busted != True or player_busted == True:
+				print('The House Wins')
+			else:
+				print('You Win!')
+
+			
+			y = input('Play again!?'' y/n')
+			if str.lower(y) not in ('yes','y'):
+				playing = False
+
+blackjack()
