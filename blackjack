@@ -2,6 +2,7 @@
 
 
 import random
+import time
 
 
 def score(hand):
@@ -44,12 +45,15 @@ def round1():
 	# player_busted = False
 
 
-	print('welcome to RPM Casino. This is single deck blackjack, highroller. Dealer must hit under 16, Player wins ties. Aces high or low')
+	print('welcome to RPM Casino. This is single deck blackjack, highroller. Dealer must hit under 16, ties result in a push. Aces high or low')
 
 	playing = True
 	while playing == True:
 
 # Draw initial cards
+
+			print('Drawing initial Cards...')
+			time.sleep(2)
 
 			card_list = ('2','3','4','5','6','7','8','9','10','J','Q','K','A')*4
 			display_hand = random.sample(card_list,2)
@@ -81,30 +85,41 @@ def round1():
 					
 					if hs == 'hit':
 						draw = random.sample(card_list,1)
+
+						print('Drawing Cards...')
+						time.sleep(2)
+
 						display_hand.append(draw)
-						# print(display_hand)
+						
 						scoring_hand.append(card_values(draw))
-						# print(score(scoring_hand))
+						
+						print(display_hand)
+						print(score(scoring_hand))
+						
 						if score(scoring_hand) ==21:
-							print(display_hand)
-							print(score(scoring_hand))
-							break
+							print('21!')
+							hs = 'stay'
 						elif score(scoring_hand) <21:
-							print(display_hand)
-							print(score(scoring_hand))
+							continue
 						elif score(scoring_hand) > 21:
-							print(display_hand)
-							print(score(scoring_hand))
 							print('Busted!')
-							# player_busted == True
 							break
-					if hs == 'stay':
 						
 
-# once player has decided to stay, calculate dealer hand
+# once player has decided to stay, calculate dealer hand					
+
+					if hs == 'stay':
+						
+						print('Dealer flips card...must hit if under 16')
+						time.sleep(1)
+
 						print(f'dealer has: {dealer_display_hand}')
 						while score(dealer_scoring_hand) < 16:
 							dealer_draw = random.sample(card_list,1)
+
+							print('Drawing Cards...')
+							time.sleep(2)
+
 							print(f'the dealer draws a {dealer_draw}')
 							dealer_scoring_hand.append(card_values(dealer_draw))
 							print()
@@ -115,13 +130,15 @@ def round1():
 # compare hands to determine who wins
 
 				if score(scoring_hand) > 21:
-					print('The House Wins')
+					print('The House Wins!')
 				if score(dealer_scoring_hand) > 21:
 					print('Dealer Busts - you win!')
-				if score(scoring_hand) >= score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21: 
-					print('You Win')
+				if score(scoring_hand) > score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21: 
+					print('You Win!')
 				if score(dealer_scoring_hand) > score(scoring_hand) and score(dealer_scoring_hand) <= 21:
-					print('the house wins bla bla')
+					print('the house wins!')
+				if score(scoring_hand) == score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21:
+					print('Push! No one wins')
 				
 # ask player if they'd like to play again
 
