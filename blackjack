@@ -47,11 +47,19 @@ def round1():
 
 	print('welcome to RPM Casino. This is single deck blackjack, highroller. Dealer must hit under 16, ties result in a push. Aces high or low')
 
+	print()
+
+	print('Winning hands earn 1.5x the starting bet')
+
+	initial_pot = int(input('Please enter your starting pot'))
+
 	playing = True
 	while playing == True:
 
 # Draw initial cards
-
+			
+			bet = int(input('Please enter your bet'))
+			
 			print('Drawing initial Cards...')
 			time.sleep(2)
 
@@ -76,7 +84,8 @@ def round1():
 # perform logic for player hand
 
 			if score(scoring_hand) ==21:
-				print('Winner Winner Chicken Dinner - You win')
+				print('Winner Winner Chicken Dinner - You win!')
+				initial_pot+=bet*1.5
 				# break
 			else:
 				hitting = True
@@ -131,21 +140,30 @@ def round1():
 
 				if score(scoring_hand) > 21:
 					print('The House Wins!')
+					initial_pot-=bet
 				if score(dealer_scoring_hand) > 21:
 					print('Dealer Busts - you win!')
+					initial_pot+=bet*1.5
 				if score(scoring_hand) > score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21: 
 					print('You Win!')
+					initial_pot+=bet*1.5
 				if score(dealer_scoring_hand) > score(scoring_hand) and score(dealer_scoring_hand) <= 21:
 					print('the house wins!')
+					initial_pot-=bet
 				if score(scoring_hand) == score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21:
 					print('Push! No one wins')
+				print(f'Your pot stands at {initial_pot}')
 				
 # ask player if they'd like to play again
-
-			play_again = input('play again? y/n')
-			if str.lower(play_again) == ('y'):
-				playing = True
+			
+			if initial_pot == 0:
+				print("tough luck, highroller, you're out of dough! Better luck next time. Bye!")
+				playing = False			
 			else:
-				print('bye!')
-				playing = False
+				play_again = input('play again? y/n')
+				if str.lower(play_again) == ('y'):
+					playing = True
+				else:
+					print('bye!')
+					playing = False
 round1()
