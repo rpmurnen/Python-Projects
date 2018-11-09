@@ -20,7 +20,7 @@ def score(hand):
 			score -= 10
 			aces -=1
 	return score
-# score((13,14,2,14,12,12,12,12,12))
+
 
 def card_values(hand):
 
@@ -40,10 +40,6 @@ def card_values(hand):
 
 
 def round1():
-
-	# dealer_busted = False
-	# player_busted = False
-
 
 	print('welcome to RPM Casino. This is single deck blackjack, highroller. Dealer must hit under 16, ties result in a push. Aces high or low')
 
