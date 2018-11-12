@@ -20,7 +20,7 @@ def score(hand):
 			score -= 10
 			aces -=1
 	return score
-
+# score((13,14,2,14,12,12,12,12,12))
 
 def card_values(hand):
 
@@ -41,20 +41,32 @@ def card_values(hand):
 
 def round1():
 
+	# dealer_busted = False
+	# player_busted = False
+
+
 	print('welcome to RPM Casino. This is single deck blackjack, highroller. Dealer must hit under 16, ties result in a push. Aces high or low')
 
 	print()
 
-	print('Winning hands earn 1.5x the starting bet')
+	print('Blackjacks return 2.5:1, winning hands return 2:1. Losing hands lose youor initial bet. No insurance, no surrendering. Still working on that')
 
 	initial_pot = int(input('Please enter your starting pot'))
 
 	playing = True
 	while playing == True:
 
+
+# get initial bets, make sur ethe player is not betting more than their pot 
+			betting = True
+			while betting == True:
+				bet = int(input('Please enter your bet'))
+				if bet > initial_pot:
+					print("You can't bet more than your pot!")
+				else:
+					betting = False
+				
 # Draw initial cards
-			
-			bet = int(input('Please enter your bet'))
 			
 			print('Drawing initial Cards...')
 			time.sleep(2)
@@ -77,7 +89,7 @@ def round1():
 			for i in dealer_display_hand:
 				dealer_scoring_hand.append(card_values(i))
 
-# perform logic for player hand
+# perform logic for player hand / hitting
 
 			if score(scoring_hand) ==21:
 				print('Winner Winner Chicken Dinner - You win!')
@@ -139,16 +151,16 @@ def round1():
 					initial_pot-=bet
 				if score(dealer_scoring_hand) > 21:
 					print('Dealer Busts - you win!')
-					initial_pot+=bet*1.5
+					initial_pot+=bet
 				if score(scoring_hand) > score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21: 
 					print('You Win!')
-					initial_pot+=bet*1.5
+					initial_pot+=bet
 				if score(dealer_scoring_hand) > score(scoring_hand) and score(dealer_scoring_hand) <= 21:
 					print('the house wins!')
 					initial_pot-=bet
 				if score(scoring_hand) == score(dealer_scoring_hand) and score(scoring_hand) <= 21 and score(dealer_scoring_hand) <=21:
 					print('Push! No one wins')
-				print(f'Your pot stands at {initial_pot}')
+			print(f'Your pot stands at {initial_pot}')
 				
 # ask player if they'd like to play again
 			
