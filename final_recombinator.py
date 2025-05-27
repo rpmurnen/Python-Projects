@@ -6,9 +6,10 @@ from docx.shared import Inches
 from PIL import Image
 from PyPDF2 import PdfMerger
 import win32com.client as win32
+from datetime import datetime
 
 # === Folders ===
-memo_folder = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\MEMO COVER PAGE\2025-05-22")
+memo_folder = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\MEMO COVER PAGE\Master")
 image_folder = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\Clinic_ScreenShots")
 accounting_pdf_folder = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\PDF TRANSACTION DETAIL")
 output_folder = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\PDF ENTIRE PACKET")
@@ -26,6 +27,8 @@ for file in os.listdir(memo_folder):
         clinic_names.append(name)
 
 print(f"📋 Found {len(clinic_names)} clinics")
+
+month_year = datetime.today().strftime("%B %Y")
 
 # === Convert .docx to PDF ===
 def convert_docx_to_pdf(input_path, output_path):
@@ -57,7 +60,7 @@ for clinic in clinic_names:
         accounting_pdf_path = os.path.join(accounting_pdf_folder, f"{base_name}.pdf")
         combined_docx_path = os.path.join(temp_pdf_folder, f"{base_name}_combined.docx")
         memo_pdf_path = os.path.join(temp_pdf_folder, f"{base_name}_memo.pdf")
-        final_pdf_path = os.path.join(output_folder, f"{base_name} - packet.pdf")
+        final_pdf_path = os.path.join(output_folder, f"{base_name} - {month_year}.pdf")
 
         # 1. Load memo doc
         doc = Document(memo_docx_path)
