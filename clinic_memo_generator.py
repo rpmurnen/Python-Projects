@@ -27,7 +27,9 @@ os.makedirs(DEST_FOLDER, exist_ok=True)
 CONTROL_SHEET = "Control"
 AR_SHEET = "AR_Patient_Report"
 CLINIC_LIST_RANGE = "B6:B34"
-DROPDOWN_CELL = "B2"
+AR_DROPDOWN_CELL = "B2"
+PL_DROPDOWN_CELL = 'D3'
+BS_DROPDOWN_CELL = 'E3'
 TABLE1_RANGE = "C11:G15"
 TABLE2_RANGE = "C18:G28"
 
@@ -211,7 +213,7 @@ def generate_commentary(pl_ws):
 
     actuals = {
         "net": fetch(83, "F"),
-        "rev": fetch(11, "F") + fetch(74, "F"),
+        "rev": fetch(11, "F"),
         "payroll": fetch(26, "F"),
         "patient": fetch(32, "F"),
         "occupancy": fetch(45, "F"),
@@ -219,7 +221,7 @@ def generate_commentary(pl_ws):
     }
     budgets = {
         "net": fetch(83, "G"),
-        "rev": fetch(11, "G") + fetch(74, "G"),
+        "rev": fetch(11, "G"),
         "payroll": fetch(26, "G"),
         "patient": fetch(32, "G"),
         "occupancy": fetch(45, "G"),
@@ -256,24 +258,13 @@ def generate_commentary(pl_ws):
 
     return {
         "<<COMMENTARY_NET_INCOME>>": net_line,
-        "<<COMMENTARY_REVENUE>>": build_line("Revenue & MD2 Fees", actuals["rev"], budgets["rev"]),
+        "<<COMMENTARY_REVENUE>>": build_line("Revenue", actuals["rev"], budgets["rev"]),
         "<<COMMENTARY_PAYROLL>>": build_line("Payroll & Related", actuals["payroll"], budgets["payroll"]),
         "<<COMMENTARY_PATIENT_OP_EXP>>": build_line("Patient Operating Expenses", actuals["patient"], budgets["patient"]),
         "<<COMMENTARY_OCCUPANCY>>": build_line("Occupancy", actuals["occupancy"], budgets["occupancy"]),
         "<<COMMENTARY_TAXES>>": build_line("Taxes and Licenses", actuals["taxes"], budgets["taxes"]),
     }
 
-
-
-
-    return {
-        "<<COMMENTARY_NET_INCOME>>": net_line,
-        "<<COMMENTARY_REVENUE>>": build_line("Revenue & MD2 Fees", actuals["rev"], budgets["rev"]),
-        "<<COMMENTARY_PAYROLL>>": build_line("Payroll & Related", actuals["payroll"], budgets["payroll"]),
-        "<<COMMENTARY_PATIENT_OP_EXP>>": build_line("Patient Operating Expenses", actuals["patient"], budgets["patient"]),
-        "<<COMMENTARY_OCCUPANCY>>": build_line("Occupancy", actuals["occupancy"], budgets["occupancy"]),
-        "<<COMMENTARY_TAXES>>": build_line("Taxes and Licenses", actuals["taxes"], budgets["taxes"]),
-    }
 
 
 
@@ -303,15 +294,27 @@ try:
         bs_ws = wb.sheets["BS"]
         month_name, _ = get_previous_month_year()
         cash_balance = get_cash_balance(bs_ws, month_name)
-        ar_ws.range(DROPDOWN_CELL).value = clinic
+        ar_ws.range(BS_DROPDOWN_CELL).value = clinic
         time.sleep(0.25)
         _ = ar_ws.range("C11").value
         ar_ws.api.Calculate()
         pl_ws = wb.sheets["PL"]
+
+        # Set dropdowns to the current clinic for all sheets
+        ar_ws.range(AR_DROPDOWN_CELL).value = clinic
+        pl_ws.range(PL_DROPDOWN_CELL).value = clinic
+        bs_ws.range(BS_DROPDOWN_CELL).value = clinic
+
+        # Force recalc by referencing a known formula-driven cell
+        _ = ar_ws.range("C11").value
+        ar_ws.api.Calculate()
+        _ = pl_ws.range("F83").value
+        pl_ws.api.Calculate()
+        _ = bs_ws.range("F6").value  # optional, if needed
+        bs_ws.api.Calculate()
+
+        # Now generate commentary using the updated PL sheet
         commentary_dict = generate_commentary(pl_ws)
-
-
-
 
 
         table1 = ar_ws.range(TABLE1_RANGE).value
