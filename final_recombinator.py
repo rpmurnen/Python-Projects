@@ -28,7 +28,12 @@ for file in os.listdir(memo_folder):
 
 print(f"📋 Found {len(clinic_names)} clinics")
 
-month_year = datetime.today().strftime("%B %Y")
+
+# get name of last month, for PDF names
+today = datetime.today()
+month = today.month - 1 or 12
+year = today.year if today.month > 1 else today.year - 1
+month_name = datetime(year, month, 1).strftime("%B")
 
 # === Convert .docx to PDF ===
 def convert_docx_to_pdf(input_path, output_path):
@@ -60,7 +65,7 @@ for clinic in clinic_names:
         accounting_pdf_path = os.path.join(accounting_pdf_folder, f"{base_name}.pdf")
         combined_docx_path = os.path.join(temp_pdf_folder, f"{base_name}_combined.docx")
         memo_pdf_path = os.path.join(temp_pdf_folder, f"{base_name}_memo.pdf")
-        final_pdf_path = os.path.join(output_folder, f"{base_name} - {month_year}.pdf")
+        final_pdf_path = os.path.join(output_folder, f"{base_name} - {month_name} {year}.pdf")
 
         # 1. Load memo doc
         doc = Document(memo_docx_path)
