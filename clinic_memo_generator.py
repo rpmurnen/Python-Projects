@@ -218,6 +218,7 @@ def generate_commentary(pl_ws):
         "patient": fetch(32, "F"),
         "occupancy": fetch(45, "F"),
         "taxes": fetch(58, "F"),
+        "dues": fetch(65, "F"),
     }
     budgets = {
         "net": fetch(83, "G"),
@@ -226,6 +227,7 @@ def generate_commentary(pl_ws):
         "patient": fetch(32, "G"),
         "occupancy": fetch(45, "G"),
         "taxes": fetch(58, "G"),
+        "dues": fetch(65, "G"),
     }
 
     
@@ -263,6 +265,8 @@ def generate_commentary(pl_ws):
         "<<COMMENTARY_PATIENT_OP_EXP>>": build_line("Patient Operating Expenses", actuals["patient"], budgets["patient"]),
         "<<COMMENTARY_OCCUPANCY>>": build_line("Occupancy", actuals["occupancy"], budgets["occupancy"]),
         "<<COMMENTARY_TAXES>>": build_line("Taxes and Licenses", actuals["taxes"], budgets["taxes"]),
+        "<<COMMENTARY_DUES>>": build_line("Fees & Dues", actuals["dues"], budgets["dues"]),
+
     }
 
 
@@ -293,7 +297,6 @@ try:
         print(f"\n🩺 Processing clinic: {clinic}")
         bs_ws = wb.sheets["BS"]
         month_name, _ = get_previous_month_year()
-
         ar_ws.range(BS_DROPDOWN_CELL).value = clinic
         time.sleep(0.25)
         _ = ar_ws.range("C11").value
@@ -313,9 +316,11 @@ try:
         _ = bs_ws.range("F6").value  # optional, if needed
         bs_ws.api.Calculate()
 
+        cash_balance = get_cash_balance(bs_ws, month_name)
+
         # Now generate commentary using the updated PL sheet
         commentary_dict = generate_commentary(pl_ws)
-        cash_balance = get_cash_balance(bs_ws, month_name)
+
 
         table1 = ar_ws.range(TABLE1_RANGE).value
         table2 = ar_ws.range(TABLE2_RANGE).value
