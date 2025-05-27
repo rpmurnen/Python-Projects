@@ -293,7 +293,7 @@ try:
         print(f"\n🩺 Processing clinic: {clinic}")
         bs_ws = wb.sheets["BS"]
         month_name, _ = get_previous_month_year()
-        cash_balance = get_cash_balance(bs_ws, month_name)
+
         ar_ws.range(BS_DROPDOWN_CELL).value = clinic
         time.sleep(0.25)
         _ = ar_ws.range("C11").value
@@ -315,7 +315,7 @@ try:
 
         # Now generate commentary using the updated PL sheet
         commentary_dict = generate_commentary(pl_ws)
-
+        cash_balance = get_cash_balance(bs_ws, month_name)
 
         table1 = ar_ws.range(TABLE1_RANGE).value
         table2 = ar_ws.range(TABLE2_RANGE).value
