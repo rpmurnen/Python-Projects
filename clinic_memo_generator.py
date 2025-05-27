@@ -372,7 +372,11 @@ try:
                 run = ar_para.add_run(ar_message)
                 set_font(run)
                 break
-
+        
+        # delete all the empty rows (there will always be empty rows)
+        table2 = [row for row in table2 if any(cell not in [None, "", " "] for cell in row)]
+    
+        
         # Now insert the table at the placeholder
         insert_table_at_placeholder(doc, PLACEHOLDER_2, table2)
 
