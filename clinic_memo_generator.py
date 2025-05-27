@@ -136,7 +136,8 @@ def insert_table_at_placeholder(doc, placeholder, table_data):
                     set_font(run)
                     run.bold = True
 
-
+                    continue  # ✅ Skip rest of row so it doesn't get re-added below
+                    
                 for col_idx, cell_val in enumerate(row_data):
                     if row_idx == 0 and placeholder == PLACEHOLDER_1 and col_idx >= 1:
                         continue  # Skip all merged cells: 1, 2, 3, 4
