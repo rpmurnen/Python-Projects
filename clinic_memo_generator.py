@@ -4,9 +4,10 @@ from datetime import datetime
 import calendar
 from docx import Document
 from docx.shared import Pt
-from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
+from docx.oxml import OxmlElement
+
 
 try:
     import xlwings as xw
@@ -14,12 +15,15 @@ except ImportError:
     raise ImportError("The 'xlwings' module is required. Please install it using: pip install xlwings")
 
 wb = None  # Predefine workbook variable so it always exists
+prior_app = None
+prior_wb = None
 
 # === CONFIGURATION ===
+EXCEL_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\05-25 CLINIC FINANCIALS.xlsm")
+PRIOR_EXCEL_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\04-25 CLINIC FINANCIALS2.xlsm")
+DEST_FOLDER_BASE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\Clinics\MEMO COVER PAGE")
 
-EXCEL_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\04-25 CLINIC FINANCIALS2.xlsm")
 WORD_TEMPLATE_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\ME_Reporting_Python_Scripting\memo_template.docx")
-DEST_FOLDER_BASE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\Clinics\MEMO COVER PAGE")
 TODAY_FOLDER = datetime.today().strftime("%Y-%m-%d")
 DEST_FOLDER = os.path.join(DEST_FOLDER_BASE, TODAY_FOLDER)
 os.makedirs(DEST_FOLDER, exist_ok=True)
@@ -35,6 +39,81 @@ TABLE2_RANGE = "C18:G28"
 
 PLACEHOLDER_1 = "<<INSERT EXCEL SECTION 1 HERE>>"
 PLACEHOLDER_2 = "<<INSERT EXCEL SECTION 2 HERE>>"
+
+# Add your properly indented and corrected code logic below this line
+# Let me know if you want the full corrected script inserted here
+import os
+import time
+from datetime import datetime
+import calendar
+from docx import Document
+from docx.shared import Pt
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
+
+try:
+    import xlwings as xw
+except ImportError:
+    raise ImportError("The 'xlwings' module is required. Please install it using: pip install xlwings")
+
+wb = None  # Predefine workbook variable so it always exists
+prior_app = None
+prior_wb = None
+
+# === CONFIGURATION ===
+# === YOU NEED TO DEFINE THESE VARIABLES:===
+EXCEL_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\05-25 CLINIC FINANCIALS.xlsm")
+PRIOR_EXCEL_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\04-2025\04-25 CLINIC FINANCIALS2.xlsm")
+DEST_FOLDER_BASE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\Clinics\MEMO COVER PAGE")
+
+# === DON'T CHANGE THIS ONE - IT'S THE MEMO TEMPLATE THE SCRIPT WILL USE:===
+WORD_TEMPLATE_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\ME_Reporting_Python_Scripting\memo_template.docx")
+TODAY_FOLDER = datetime.today().strftime("%Y-%m-%d")
+DEST_FOLDER = os.path.join(DEST_FOLDER_BASE, TODAY_FOLDER)
+os.makedirs(DEST_FOLDER, exist_ok=True)
+
+CONTROL_SHEET = "Control"
+AR_SHEET = "AR_Patient_Report"
+CLINIC_LIST_RANGE = "B6:B34"
+AR_DROPDOWN_CELL = "B2"
+PL_DROPDOWN_CELL = 'D3'
+BS_DROPDOWN_CELL = 'E3'
+TABLE1_RANGE = "C11:G15"
+TABLE2_RANGE = "C18:G28"
+
+PLACEHOLDER_1 = "<<INSERT EXCEL SECTION 1 HERE>>"
+PLACEHOLDER_2 = "<<INSERT EXCEL SECTION 2 HERE>>"
+
+
+
+
+# === HELPER FUNCTIONS:===
+# get patient counts
+def get_patient_count(ws):
+    try:
+        val = ws.range("G15").value
+        return int(val) if val is not None else 0
+    except:
+        return 0
+
+
+# get the patient counts by doctor
+def get_doctor_patient_stats(ws, row):
+    name = ws.range(f"C{row}").value or "[Name missing]"
+    primaries = ws.range(f"D{row}").value or 0
+    spouse = ws.range(f"E{row}").value or 0
+    children = ws.range(f"F{row}").value or 0
+    total = ws.range(f"G{row}").value or 0
+    return {
+        "name": str(name),
+        "primaries": int(primaries),
+        "spouse": int(spouse),
+        "children": int(children),
+        "total": int(total)
+    }
+
+
 
 def get_doctor_names_xlwings(xlwb, clinic_name):
     md_list_sheet = xlwb.sheets["MD_List"]
@@ -77,14 +156,48 @@ def get_cash_balance(bs_sheet, target_month):
 
     return None
 
+def build_doctor_commentary(current, prior):
+    name = current["name"]
+    total_diff = current["total"] - prior["total"]
+    prim_diff = current["primaries"] - prior["primaries"]
+    spouse_diff = current["spouse"] - prior["spouse"]
+    child_diff = current["children"] - prior["children"]
 
+    def fmt(val):
+        sign = "+" if val > 0 else ""  # no sign for negative since "-" will be included
+        return f"{sign}{val}"
+
+    return (
+        f"{name}: total patient volume change = {fmt(total_diff)} "
+        f"(Primaries: {fmt(prim_diff)}, Spouse/Mid-Adult: {fmt(spouse_diff)}, Children: {fmt(child_diff)})"
+    )
 
 def set_font(run):
     run.font.name = 'Aptos Narrow'
     run.font.size = Pt(11)
     run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Aptos Narrow')
 
+
+# formatting helper - bullet points
+def add_bullet_paragraph(doc, text, index):
+    para = doc.paragraphs[index].insert_paragraph_before(text)
+    set_font(para.runs[0])
+
+    # Add bullet formatting manually
+    p = para._element
+    numPr = OxmlElement('w:numPr')
+    ilvl = OxmlElement('w:ilvl')
+    ilvl.set(qn('w:val'), '0')
+    numId = OxmlElement('w:numId')
+    numId.set(qn('w:val'), '1')
+    numPr.append(ilvl)
+    numPr.append(numId)
+    p.insert(0, numPr)
+
+    return para
+
 # ... [imports and config remain unchanged above this point]
+# Script begins below this point:
 
 
 
@@ -137,7 +250,7 @@ def insert_table_at_placeholder(doc, placeholder, table_data):
                     run.bold = True
 
                     continue  # ✅ Skip rest of row so it doesn't get re-added below
-                    
+
                 for col_idx, cell_val in enumerate(row_data):
                     if row_idx == 0 and placeholder == PLACEHOLDER_1 and col_idx >= 1:
                         continue  # Skip all merged cells: 1, 2, 3, 4
@@ -180,6 +293,14 @@ def insert_table_at_placeholder(doc, placeholder, table_data):
 
     if not found:
         print(f"⚠️ Placeholder not found: {placeholder}")
+
+
+
+
+prior_app = xw.App(visible=False)
+prior_app.display_alerts = False
+prior_app.screen_updating = False
+prior_wb = prior_app.books.open(PRIOR_EXCEL_PATH)
 
 
 # =========== generate basic clinic commentary ==========
@@ -319,17 +440,59 @@ try:
 
         cash_balance = get_cash_balance(bs_ws, month_name)
 
+
+
+
+
+        # Switch clinic in prior workbook too
+        prior_ar_ws = prior_wb.sheets[AR_SHEET]
+        prior_ar_ws.range(AR_DROPDOWN_CELL).value = clinic
+        _ = prior_ar_ws.range("C11").value
+        prior_ar_ws.api.Calculate()
+
+        prior_count = get_patient_count(prior_ar_ws)
+        current_count = get_patient_count(ar_ws)
+
+        delta = current_count - prior_count
+        abs_pct = abs(delta) / prior_count if prior_count else 0
+        direction = "increased" if delta > 0 else "decreased"
+
+        if delta == 0:
+            patient_msg = f"Patient volume was flat compared to the prior month, which had {prior_count} patients."
+        else:
+            patient_msg = (
+                f"Patient volume {direction} by {abs(delta)} "
+                f"({abs_pct:.0%}) compared to last month, which had {prior_count} patients."
+    )
+
+
+
+        doc1_current = get_doctor_patient_stats(ar_ws, 13)
+        doc2_current = get_doctor_patient_stats(ar_ws, 14)
+        doc1_prior = get_doctor_patient_stats(prior_ar_ws, 13)
+        doc2_prior = get_doctor_patient_stats(prior_ar_ws, 14)
+
+
+
+
+        doc1_line = build_doctor_commentary(doc1_current, doc1_prior)
+        doc2_line = build_doctor_commentary(doc2_current, doc2_prior)
+
+
+
+
+
         # Now generate commentary using the updated PL sheet
         commentary_dict = generate_commentary(pl_ws)
-
 
         table1 = ar_ws.range(TABLE1_RANGE).value
         table2 = ar_ws.range(TABLE2_RANGE).value
 
-        print(f"📋 Clinic: {clinic}")
+        print(f"\U0001F4CB Clinic: {clinic}")
         for row in table1:
             print(row)
 
+        # Initialize Word document template    
         doc = Document(WORD_TEMPLATE_PATH)
 
         full_names, last_names = get_doctor_names_xlwings(wb, clinic)
@@ -354,7 +517,6 @@ try:
                     para.text = para.text.replace(placeholder, text)
                     set_font(para.runs[0])
 
-
         # Count non-empty names in C20:C27 (table2[1:8], column 0)
         name_cells = [row[0] for row in table2[1:8]]
         outstanding_count = sum(1 for name in name_cells if isinstance(name, str) and name.strip())
@@ -364,22 +526,38 @@ try:
         else:
             ar_message = f"You have {outstanding_count} patients with an outstanding balance > 30 days."
 
-        # Locate placeholder first, insert message directly before it
+
+        # Insert patient volume commentary
+        for i, para in enumerate(doc.paragraphs):
+            if "<<COMMENTARY_PATIENT_VOLUME>>" in para.text:
+                clean_text = para.text.replace("<<COMMENTARY_PATIENT_VOLUME>>", "").strip()
+                para.text = clean_text
+
+                # Doctor 2 detail (bullet)
+                add_bullet_paragraph(doc, doc2_line, i)
+
+                # Doctor 1 detail (bullet)
+                add_bullet_paragraph(doc, doc1_line, i)
+
+                # Overall volume message (regular)
+                vol_para = doc.paragraphs[i].insert_paragraph_before()
+                run = vol_para.add_run(patient_msg)
+                set_font(run)
+
+                break
+
+
+
+        # Insert AR outstanding message
         for i, para in enumerate(doc.paragraphs):
             if PLACEHOLDER_2 in para.text:
-                # Insert message above this paragraph
-                ar_para = doc.paragraphs[i].insert_paragraph_before("")
+                ar_para = doc.paragraphs[i].insert_paragraph_before()
                 run = ar_para.add_run(ar_message)
                 set_font(run)
                 break
-        
-        # delete all the empty rows (there will always be empty rows)
-        table2 = [row for row in table2 if any(cell not in [None, "", " "] for cell in row)]
-    
-        
-        # Now insert the table at the placeholder
-        insert_table_at_placeholder(doc, PLACEHOLDER_2, table2)
 
+        table2 = [row for row in table2 if any(cell not in [None, "", " "] for cell in row)]
+        insert_table_at_placeholder(doc, PLACEHOLDER_2, table2)
 
         if cash_balance is not None:
             cash_msg = f"Your cash balance as of the end of {month_name} was ${cash_balance:,.0f}."
@@ -390,17 +568,20 @@ try:
         run = para.add_run(cash_msg)
         set_font(run)
 
-
-
         filename = f"{clinic} review.docx"
         output_path = os.path.join(DEST_FOLDER, filename)
         doc.save(output_path)
         print(f"📏 Saved: {output_path}")
 
-finally:
-    print("\n🛑 Closing Excel...")
-    if wb is not None:
-        wb.close()
-    app.quit()
+except Exception as e:
+    print(f"❌ Error occurred: {e}")
 
-print("\n✅ All memos generated.")
+finally:
+    if wb:
+        wb.close()
+    if prior_wb:
+        prior_wb.close()
+    if app:
+        app.quit()
+    if prior_app:
+        prior_app.quit()
