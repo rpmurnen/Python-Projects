@@ -69,6 +69,8 @@ DEST_FOLDER_BASE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\20
 
 # === DON'T CHANGE THIS ONE - IT'S THE MEMO TEMPLATE THE SCRIPT WILL USE:===
 WORD_TEMPLATE_PATH = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\ME_Reporting_Python_Scripting\memo_template.docx")
+
+# === THIS IS THE SCRIPT SETTING TODAY'S TIME AND DATE....THE SCRIPT MUST BE RUN IN MONTH:===
 TODAY_FOLDER = datetime.today().strftime("%Y-%m-%d")
 DEST_FOLDER = os.path.join(DEST_FOLDER_BASE, TODAY_FOLDER)
 os.makedirs(DEST_FOLDER, exist_ok=True)
@@ -156,6 +158,7 @@ def get_cash_balance(bs_sheet, target_month):
 
     return None
 
+
 def build_doctor_commentary(current, prior):
     name = current["name"]
     total_diff = current["total"] - prior["total"]
@@ -171,6 +174,7 @@ def build_doctor_commentary(current, prior):
         f"{name}: total patient volume change = {fmt(total_diff)} "
         f"(Primaries: {fmt(prim_diff)}, Spouse/Mid-Adult: {fmt(spouse_diff)}, Children: {fmt(child_diff)})"
     )
+
 
 def set_font(run):
     run.font.name = 'Aptos Narrow'
@@ -200,7 +204,7 @@ def add_bullet_paragraph(doc, text, index):
 # Script begins below this point:
 
 
-
+# This section drops in the tables from the financials xlsx - looks for the tag in the memo doc then replaces
 def insert_table_at_placeholder(doc, placeholder, table_data):
     print(f"\n🔍 Looking for placeholder: {placeholder}")
     found = False
@@ -303,7 +307,7 @@ prior_app.screen_updating = False
 prior_wb = prior_app.books.open(PRIOR_EXCEL_PATH)
 
 
-# =========== generate basic clinic commentary ==========
+# =========== generate basic clinic commentary function ==========
 
 
 def generate_commentary(pl_ws):
@@ -466,19 +470,13 @@ try:
     )
 
 
-
+        # here we actually call all the patient stat and doctor commentary functions we built above
         doc1_current = get_doctor_patient_stats(ar_ws, 13)
         doc2_current = get_doctor_patient_stats(ar_ws, 14)
         doc1_prior = get_doctor_patient_stats(prior_ar_ws, 13)
         doc2_prior = get_doctor_patient_stats(prior_ar_ws, 14)
-
-
-
-
         doc1_line = build_doctor_commentary(doc1_current, doc1_prior)
         doc2_line = build_doctor_commentary(doc2_current, doc2_prior)
-
-
 
 
 
@@ -495,6 +493,7 @@ try:
         # Initialize Word document template    
         doc = Document(WORD_TEMPLATE_PATH)
 
+        # calls the doctor names and writes the header of the memo doc
         full_names, last_names = get_doctor_names_xlwings(wb, clinic)
         greeting_line = "Hello " + " and ".join(f"{name}" for name in last_names) + "," if last_names else "Hello,"
         to_line = "To: " + " and ".join(full_names) if full_names else "To: [Doctor Name]"
@@ -540,9 +539,9 @@ try:
                 add_bullet_paragraph(doc, doc1_line, i)
 
                 # Overall volume message (regular)
-                vol_para = doc.paragraphs[i].insert_paragraph_before()
-                run = vol_para.add_run(patient_msg)
-                set_font(run)
+                vol_para = doc.paragraphs[i].insert_paragraph_before(patient_msg)
+                set_font(vol_para.runs[0])
+
 
                 break
 
