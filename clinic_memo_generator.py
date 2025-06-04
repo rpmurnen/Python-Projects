@@ -315,8 +315,7 @@ def generate_commentary(pl_ws):
         val = pl_ws.range(f"{col}{row}").value or 0
         return float(val)
 
-    def fmt(val):
-        return f"${val:,.0f}"
+    def fmt(val): return f"${val:,.0f}"
 
     def build_line(label, actual, budget):
         delta = actual - budget
@@ -331,11 +330,45 @@ def generate_commentary(pl_ws):
         else:
             tone = "significantly above plan" if delta > 0 else "significantly below plan"
 
-        actual_str = f"${actual:,.0f}"
-        budget_str = f"${budget:,.0f}"
-        delta_str = f"${abs_delta:,.0f} ({abs_pct:.0%})"
+        actual_str = fmt(actual)
+        budget_str = fmt(budget)
+        delta_str = f"{fmt(abs_delta)} ({abs_pct:.0%})"
 
-        return f"{label} finished at {actual_str} versus a budget of {budget_str}, a difference of {delta_str} - {tone}.".strip()
+        return f"{label} finished at {actual_str} versus a budget of {budget_str}, a difference of {delta_str} - {tone}."
+
+    def build_revenue_and_md2_line(rev_actual, rev_budget, md2_actual, md2_budget):
+        def safe_pct(numerator, denominator):
+            try:
+                return (numerator / denominator) * 100 if denominator else 0
+            except ZeroDivisionError:
+                return 0
+
+        md2_pct_actual = safe_pct(md2_actual, rev_actual)
+        md2_pct_budget = safe_pct(md2_budget, rev_budget)
+        pct_diff = abs(md2_pct_actual - md2_pct_budget)
+
+        # Tone for MD2 alignment
+        if pct_diff < 1:
+            tone = "in line with expectations"
+        elif pct_diff < 3:
+            tone = "modestly out of sync with expectations"
+        else:
+            tone = "meaningfully different than expected"
+
+        # Revenue difference
+        rev_delta = rev_actual - rev_budget
+        rev_pct_diff = safe_pct(rev_delta, rev_budget)
+        rev_tone = "in line with plan" if abs(rev_pct_diff) < 5 else "variance noted"
+
+        return (
+            f"Revenue finished at ${rev_actual:,.0f} versus a budget of ${rev_budget:,.0f}, "
+            f"a difference of ${abs(rev_delta):,.0f} ({abs(rev_pct_diff):.0f}%) – {rev_tone}. "
+            f"MD2 Fees were ${md2_actual:,.0f}, or {md2_pct_actual:.0f}% of revenue, versus a budget of "
+            f"${md2_budget:,.0f}, or {md2_pct_budget:.0f}% of revenue – {tone}."
+        )
+
+
+
 
     actuals = {
         "net": fetch(83, "F"),
@@ -345,6 +378,7 @@ def generate_commentary(pl_ws):
         "occupancy": fetch(45, "F"),
         "taxes": fetch(58, "F"),
         "dues": fetch(65, "F"),
+        "md2": fetch(74, "F") 
     }
     budgets = {
         "net": fetch(83, "G"),
@@ -354,6 +388,7 @@ def generate_commentary(pl_ws):
         "occupancy": fetch(45, "G"),
         "taxes": fetch(58, "G"),
         "dues": fetch(65, "G"),
+        "md2": fetch(74, "G") 
     }
 
     
@@ -386,7 +421,7 @@ def generate_commentary(pl_ws):
 
     return {
         "<<COMMENTARY_NET_INCOME>>": net_line,
-        "<<COMMENTARY_REVENUE>>": build_line("Revenue", actuals["rev"], budgets["rev"]),
+        "<<COMMENTARY_REVENUE>>": build_revenue_and_md2_line(actuals["rev"], budgets["rev"], actuals["md2"], budgets["md2"]),
         "<<COMMENTARY_PAYROLL>>": build_line("Payroll & Related", actuals["payroll"], budgets["payroll"]),
         "<<COMMENTARY_PATIENT_OP_EXP>>": build_line("Patient Operating Expenses", actuals["patient"], budgets["patient"]),
         "<<COMMENTARY_OCCUPANCY>>": build_line("Occupancy", actuals["occupancy"], budgets["occupancy"]),
