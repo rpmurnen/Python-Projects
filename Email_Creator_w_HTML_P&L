@@ -1,0 +1,127 @@
+import os
+from datetime import datetime
+import pandas as pd
+import win32com.client as win32
+
+
+# === CONFIGURATION - change these to the correct monthly P&L, don't mess with the contact file unless a doctor has changed ===
+CONTACT_FILE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\ME_Reporting_Python_Scripting\Doctor_Emails.xlsx")
+PDF_FOLDER = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\Clinics\PDF ENTIRE PACKET")
+EMAIL_TABLE_FILE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\05-25 CLINIC FINANCIALS.xlsm")
+email_df = pd.read_excel(EMAIL_TABLE_FILE, sheet_name="email_tables")
+
+
+# === Helper: Get previous month and year ===
+def get_prev_month_year():
+    today = datetime.today()
+    month = today.month - 1 or 12
+    year = today.year - 1 if month == 12 else today.year
+    month_name = datetime(year, month, 1).strftime("%B")
+    return month_name, year
+
+month_str, year = get_prev_month_year()
+suffix = f"{month_str} {year}"
+
+# helper to build our HTML P&Ls
+def generate_html_table(df):
+    # Strip and lowercase metric names for safe matching
+    df = df.copy()
+    df["Metric"] = df["Metric"].str.strip()
+
+    def highlight_rows(row):
+        metric = row["Metric"]
+        styles = [''] * len(row)
+
+        if metric == "Total Revenue":
+            styles = ['font-weight: bold; border-bottom: 2px solid black;'] * len(row)
+        if metric == "Total Expenses":
+            styles = ['font-weight: bold; border-bottom: 2px solid black;'] * len(row)
+        elif metric == "Net Income":
+            styles = ['font-weight: bold; border-bottom: 2px solid black; border-bottom: 3px solid black;'] * len(row)
+
+        return styles
+
+    styled = (
+        df.style
+        .apply(highlight_rows, axis=1)
+        .format({
+            "Actual": "${:,.0f}",
+            "Budget": "${:,.0f}",
+            "$ Delta": "${:,.0f}",
+            "% Delta": "{:+.1%}"
+        })
+        .background_gradient(subset=["$ Delta", "% Delta"], cmap="RdYlGn", axis=0)
+        .hide(axis="index")
+        .set_properties(
+        subset=["Actual", "Budget", "$ Delta", "% Delta"],
+        **{'text-align': 'right'}
+        )
+
+    )
+
+    return styled.to_html()
+
+
+
+# === Read contact list ===
+df = pd.read_excel(CONTACT_FILE)
+
+# === Launch Outlook ===
+outlook = win32.Dispatch("Outlook.Application")
+
+# === Loop through contacts ===
+for i, row in df.iterrows():
+    clinic = str(row["Practice"]).strip()
+    doctor1 = str(row["Doctor 1"]).strip() if pd.notna(row["Doctor 1"]) else ""
+    doctor2 = str(row["Doctor 2"]).strip() if pd.notna(row["Doctor 2"]) else ""
+    email1 = str(row["Email 1"]).strip() if pd.notna(row["Email 1"]) else ""
+    email2 = str(row["Email 2"]).strip() if pd.notna(row["Email 2"]) else ""
+
+    if not email1 and not email2:
+        print(f"⚠️ Skipping {clinic} - no email addresses found")
+        continue
+
+    # === Match PDF file robustly ===
+    pdf_path = None
+    expected_suffix = f"{suffix}.pdf".lower()
+
+    for file in os.listdir(PDF_FOLDER):
+        if file.lower().startswith(clinic.lower()) and file.lower().endswith(expected_suffix):
+            pdf_path = os.path.join(PDF_FOLDER, file)
+            break
+
+    if not pdf_path or not os.path.exists(pdf_path):
+        print(f"❌ PDF not found for {clinic} (looking for suffix: '{expected_suffix}')")
+        continue
+
+    print(f"📄 Found: {os.path.basename(pdf_path)}")
+
+    # === Construct email ===
+    mail = outlook.CreateItem(0)
+    mail.Subject = f"{clinic} – {month_str} {year} Financial Packet"
+    mail.To = "; ".join(filter(None, [email1, email2]))
+    mail.CC = "krysia.johnson@md2.com"  
+    greeting = "Hello " + " and ".join(filter(None, [doctor1, doctor2])) + ","
+    # Filter financials for this clinic
+    clinic_table = email_df[email_df["Clinic"] == clinic][["Metric", "Actual", "Budget", "$ Delta", "% Delta"]]
+    if clinic_table.empty:
+        print(f"⚠️ No email table data found for {clinic}")
+        continue
+
+    html_table = generate_html_table(clinic_table)
+
+    mail.HTMLBody = f"""
+    <p>{greeting}</p>
+    <p>Attached, please find your {month_str} {year} financials. This includes your practice's Profit & Loss and Balance Sheet summaries, along with key commentary on financial performance.</p>
+    <p><strong>Here’s a quick summary:</strong></p>
+    {html_table}
+    <p>Please let me know if you have any questions or would like to discuss any of the details—I’m happy to set up time to walk through it with you.</p>
+    <p>Best,<br>Russ</p>
+    """
+
+    mail.Attachments.Add(pdf_path)
+    mail.Save()
+
+    print(f"📨 Draft created for {clinic}")
+
+print("\n✅ All emails created and saved as drafts.")
