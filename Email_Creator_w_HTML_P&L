@@ -2,7 +2,8 @@ import os
 from datetime import datetime
 import pandas as pd
 import win32com.client as win32
-
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 # === CONFIGURATION - change these to the correct monthly P&L, don't mess with the contact file unless a doctor has changed ===
 CONTACT_FILE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\ME_Reporting_Python_Scripting\Doctor_Emails.xlsx")
@@ -10,6 +11,29 @@ PDF_FOLDER = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-
 EMAIL_TABLE_FILE = os.path.expanduser(r"~\MD2\Finance - General\00 Financials\2025\05-2025\05-25 CLINIC FINANCIALS.xlsm")
 email_df = pd.read_excel(EMAIL_TABLE_FILE, sheet_name="email_tables")
 
+# Define a red-white-green colormap (no yellow)
+white_centered = LinearSegmentedColormap.from_list(
+    "red_white_green",
+    ["#F8696B", "#ffffff", "#63BE7B"],  # red → white → green
+    N=256
+)
+
+
+
+
+# Define expense rows where lower = better
+EXPENSE_ROWS = {
+    "Total Payroll & Related",
+    "Total Operating Expenses",
+    "Malpractice Insurance",
+    "Occupancy Expenses",
+    "Travel & Entertainment",
+    "Taxes & Licenses",
+    "Fees & Dues",
+    "General Office Expenses",
+    "MD2 Fees",
+    "Total Expenses"
+}
 
 # === Helper: Get previous month and year ===
 def get_prev_month_year():
@@ -21,6 +45,52 @@ def get_prev_month_year():
 
 month_str, year = get_prev_month_year()
 suffix = f"{month_str} {year}"
+
+
+# conditional formatting loop:
+def apply_conditional_row_styles(df):
+    styles = pd.DataFrame("", index=df.index, columns=df.columns)
+
+    for i, row in df.iterrows():
+        label = row["Metric"]
+        dollar = row["$ Delta"]
+        percent = row["% Delta"]
+
+        # Decide if this is an expense where lower = better
+        invert = label in EXPENSE_ROWS
+
+        # Normalize values for coloring
+        norm_dollar = abs(dollar) / 25000
+        norm_percent = abs(percent)
+        norm_dollar = min(norm_dollar, 1)
+        norm_percent = min(norm_percent, 1)
+
+        def get_color(norm, positive_good):
+            if norm < 0.05:
+                return "background-color: white;"
+            elif positive_good:
+                return "background-color: #63BE7B;" if norm > 0.66 else \
+                       "background-color: #f0f0f0;" if norm < 0.33 else \
+                       "background-color: #C5E0B4;"
+            else:
+                return "background-color: #F8696B;" if norm > 0.66 else \
+                       "background-color: #f0f0f0;" if norm < 0.33 else \
+                       "background-color: #F4CCCC;"
+
+        # Define polarity: when is a positive change good?
+        positive_good_dollar = (dollar > 0) if not invert else (dollar < 0)
+        positive_good_percent = (percent > 0) if not invert else (percent < 0)
+
+
+        # Apply styles
+        styles.at[i, "$ Delta"] = get_color(norm_dollar, positive_good_dollar)
+        styles.at[i, "% Delta"] = get_color(norm_percent, positive_good_percent)
+
+    return styles
+
+
+
+
 
 # helper to build our HTML P&Ls
 def generate_html_table(df):
@@ -42,22 +112,27 @@ def generate_html_table(df):
         return styles
 
     styled = (
-        df.style
-        .apply(highlight_rows, axis=1)
-        .format({
-            "Actual": "${:,.0f}",
-            "Budget": "${:,.0f}",
-            "$ Delta": "${:,.0f}",
-            "% Delta": "{:+.1%}"
-        })
-        .background_gradient(subset=["$ Delta", "% Delta"], cmap="RdYlGn", axis=0)
-        .hide(axis="index")
-        .set_properties(
+    df.style
+    .apply(apply_conditional_row_styles, axis=None)
+    .apply(highlight_rows, axis=1)
+    .format({
+        "Actual": "${:,.0f}",
+        "Budget": "${:,.0f}",
+        "$ Delta": "${:,.0f}",
+        "% Delta": "{:+.1%}"
+    })
+
+    .hide(axis="index")
+    .set_properties(
         subset=["Actual", "Budget", "$ Delta", "% Delta"],
         **{'text-align': 'right'}
-        )
-
     )
+    .set_table_styles([
+        {'selector': 'td', 'props': [('padding-left', '8px'), ('padding-right', '8px')]},
+        {'selector': 'th', 'props': [('padding-left', '8px'), ('padding-right', '8px')]},
+        ])
+    )
+
 
     return styled.to_html()
 
