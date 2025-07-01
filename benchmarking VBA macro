@@ -1,0 +1,214 @@
+'==============================================================
+'  CreateBenchmarkSimpleWithRanks  ·  v2.1  (July 2025)
+'  Output columns: Market | Account | Month $ | YTD $ | Month % | Month Rank | YTD % | YTD Rank
+'  Ranking logic: **Rank 1 = LOWEST % of revenue (best)**.
+'==============================================================
+Option Explicit
+
+'——— Helper: returns numeric value or 0 if error / blank / text ——
+Private Function SafeNum(rng As Range) As Double
+    Dim v As Variant: v = rng.Value2
+    If IsError(v) Or Not IsNumeric(v) Then SafeNum = 0 Else SafeNum = CDbl(v)
+End Function
+
+'——— Helper: ascending sort that keeps ord() indices aligned ——
+Private Sub SortAsc(vals() As Double, ord() As Long)
+    Dim i As Long, j As Long, tmpV As Double, tmpO As Long
+    For i = LBound(vals) To UBound(vals) - 1
+        For j = i + 1 To UBound(vals)
+            If vals(j) < vals(i) Then
+                tmpV = vals(i): vals(i) = vals(j): vals(j) = tmpV
+                tmpO = ord(i): ord(i) = ord(j): ord(j) = tmpO
+            End If
+        Next j
+    Next i
+End Sub
+
+'——— MAIN MACRO ——
+Public Sub CreateBenchmarkSimpleWithRanks()
+
+'——— turn off auto calc in order for LET functions to wait ——
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+
+
+    '--- configurable constants ---
+    Const FIRST_ROW As Long = 15          'first account row in PL
+    Const LAST_ROW  As Long = 72          'last  account row in PL
+    Const COL_MONTH_PCT As String = "BW"  'month % of revenue
+    Const COL_YTD_PCT   As String = "BX"  'YTD % of revenue
+    Const COL_ACCOUNT   As String = "D"   'account names
+    '-----------------------------------------------------------
+
+    Dim wsPL  As Worksheet, wsCTL As Worksheet, wsOUT As Worksheet
+    Dim rngClinics As Range, c As Range
+    Dim nClin As Long, nAcct As Long, i As Long, j As Long
+
+    '--- set sheet handles ---
+    Set wsPL = ActiveWorkbook.Worksheets("PL")
+    Set wsCTL = ActiveWorkbook.Worksheets("Control")
+    Set rngClinics = wsCTL.Range("B6:B38")
+
+    nClin = Application.WorksheetFunction.CountA(rngClinics)
+    If nClin = 0 Then MsgBox "No clinics listed in Control!B6:B34": Exit Sub
+
+    nAcct = LAST_ROW - FIRST_ROW + 1
+
+    '--- pull account names from first clinic ---
+    wsPL.Range("D3").Value = rngClinics.Cells(1).Value
+    Application.Calculate
+    Dim acctNames() As Variant
+    acctNames = wsPL.Range(COL_ACCOUNT & FIRST_ROW).Resize(nAcct).Value '2-D array
+
+    '--- dimension arrays ---
+    Dim mPct() As Double, yPct() As Double
+    Dim mRank() As Variant, yRank() As Variant
+    Dim mErr() As Boolean, yErr() As Boolean
+    Dim mDol() As Double, yDol() As Double
+    Dim marketArr() As String
+
+    ReDim mPct(1 To nClin, 1 To nAcct)
+    ReDim yPct(1 To nClin, 1 To nAcct)
+    ReDim mRank(1 To nClin, 1 To nAcct)
+    ReDim yRank(1 To nClin, 1 To nAcct)
+    ReDim mErr(1 To nClin, 1 To nAcct)
+    ReDim yErr(1 To nClin, 1 To nAcct)
+    ReDim mDol(1 To nClin, 1 To nAcct)
+    ReDim yDol(1 To nClin, 1 To nAcct)
+    ReDim marketArr(1 To nClin)
+
+    '--- collect data for each clinic ---
+    Dim clinIdx As Long, acctIdx As Long, r As Long
+    clinIdx = 0
+    For Each c In rngClinics
+        If Trim(c.Value) <> "" Then
+            clinIdx = clinIdx + 1
+            wsPL.Range("D3").Value = c.Value
+            Application.Calculate
+
+            marketArr(clinIdx) = c.Value
+
+            For acctIdx = 1 To nAcct
+                r = FIRST_ROW + acctIdx - 1
+                mErr(clinIdx, acctIdx) = IsError(wsPL.Range(COL_MONTH_PCT & r).Value)
+                yErr(clinIdx, acctIdx) = IsError(wsPL.Range(COL_YTD_PCT & r).Value)
+
+                mPct(clinIdx, acctIdx) = SafeNum(wsPL.Range(COL_MONTH_PCT & r))
+                yPct(clinIdx, acctIdx) = SafeNum(wsPL.Range(COL_YTD_PCT & r))
+
+                mDol(clinIdx, acctIdx) = SafeNum(wsPL.Cells(r, "F"))
+                yDol(clinIdx, acctIdx) = SafeNum(wsPL.Cells(r, "K"))
+            Next acctIdx
+        End If
+    Next c
+
+    '--- rank each account across clinics (ascending = best) ---
+    Dim tmp() As Double, ord() As Long
+    Dim rankPOS As Long
+    ReDim tmp(1 To nClin)
+    ReDim ord(1 To nClin)
+
+    For acctIdx = 1 To nAcct
+        'month ranks
+        For clinIdx = 1 To nClin
+            tmp(clinIdx) = mPct(clinIdx, acctIdx)
+            ord(clinIdx) = clinIdx
+        Next clinIdx
+        
+        SortAsc tmp, ord            'ascending = best is 1
+        
+        For rankPOS = 1 To nClin
+            If tmp(rankPOS) = 0 Then
+                mRank(ord(rankPOS), acctIdx) = ""    'blank ? will show “---”
+            Else
+                mRank(ord(rankPOS), acctIdx) = rankPOS
+            End If
+        Next rankPOS
+
+
+        'YTD ranks
+        For clinIdx = 1 To nClin
+            tmp(clinIdx) = yPct(clinIdx, acctIdx)
+            ord(clinIdx) = clinIdx
+        Next clinIdx
+        
+        SortAsc tmp, ord
+        
+        For rankPOS = 1 To nClin
+            If tmp(rankPOS) = 0 Then
+                yRank(ord(rankPOS), acctIdx) = ""
+            Else
+                yRank(ord(rankPOS), acctIdx) = rankPOS
+            End If
+        Next rankPOS
+
+        Next acctIdx
+
+    '--- prepare output sheet ---
+    On Error Resume Next
+    Set wsOUT = Worksheets("Benchmark_Data")
+    If wsOUT Is Nothing Then
+        Set wsOUT = Worksheets.Add(After:=Sheets(Sheets.Count))
+        wsOUT.Name = "Benchmark_Data"
+    End If
+    On Error GoTo 0
+    wsOUT.Cells.Clear
+
+    '--- headers ---
+    Dim hdr: hdr = Array("Market", "Account", "Month $", "YTD $", "Month %", "Month Rank", "YTD %", "YTD Rank")
+    wsOUT.Range("A1").Resize(1, UBound(hdr) + 1).Value = hdr
+    wsOUT.Range("A1:H1").Font.Bold = True
+
+    '--- dump data flat ---
+    Dim outRow As Long: outRow = 2
+
+    For clinIdx = 1 To nClin
+        For acctIdx = 1 To nAcct
+            wsOUT.Cells(outRow, 1).Value = marketArr(clinIdx)            'Market
+            wsOUT.Cells(outRow, 2).Value = acctNames(acctIdx, 1)        'Account
+            wsOUT.Cells(outRow, 3).Value = mDol(clinIdx, acctIdx)       'Month $
+            wsOUT.Cells(outRow, 4).Value = yDol(clinIdx, acctIdx)       'YTD $
+
+            If mErr(clinIdx, acctIdx) Then
+                wsOUT.Cells(outRow, 5).Value = ""
+            Else
+                wsOUT.Cells(outRow, 5).Value = mPct(clinIdx, acctIdx)   'Month %
+            End If
+            wsOUT.Cells(outRow, 6).Value = mRank(clinIdx, acctIdx)      'Month Rank
+
+            If yErr(clinIdx, acctIdx) Then
+                wsOUT.Cells(outRow, 7).Value = ""
+            Else
+                wsOUT.Cells(outRow, 7).Value = yPct(clinIdx, acctIdx)   'YTD %
+            End If
+            wsOUT.Cells(outRow, 8).Value = yRank(clinIdx, acctIdx)      'YTD Rank
+
+            If acctNames(acctIdx, 1) = "Net Income" Then wsOUT.Rows(outRow).Font.Bold = True
+            outRow = outRow + 1
+        Next acctIdx
+    Next clinIdx
+
+    '--- formatting ---
+    With wsOUT
+        .Columns("C:D").NumberFormat = "$#,##0"
+        .Columns("E:E").NumberFormat = "0.0%"
+        .Columns("G:G").NumberFormat = "0.0%"
+    
+        '? ranks: show numbers; blanks display ---
+        .Range("F2:F" & outRow - 1).NumberFormat = "0;;;" & Chr(34) & "---" & Chr(34)
+        .Range("H2:H" & outRow - 1).NumberFormat = "0;;;" & Chr(34) & "---" & Chr(34)
+
+    
+        .Columns("A:H").AutoFit
+    End With
+
+
+'---turn auto calc back on
+Application.Calculation = xlCalculationAutomatic
+Application.Calculate
+Application.ScreenUpdating = True
+
+
+    MsgBox "Benchmark table refreshed (rank 1 = lowest cost %).", vbInformation
+End Sub
+
